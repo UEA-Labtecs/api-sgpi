@@ -13,6 +13,7 @@ __pycache__
 *.coverage
 *.mypy_cache
 .venv
+venv
 *.env
 *.DS_Store
 # Local configuration files
@@ -27,3 +28,5 @@ config.ini
 .pytest_cache/
 # Coverage reports
 .coverage
+
+postgres-data/

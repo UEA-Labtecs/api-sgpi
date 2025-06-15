@@ -1,5 +1,9 @@
-playwright==1.44.0
-pandas==2.2.2
-openpyxl==3.1.2
-fastapi 
-uvicorn
+fastapi
+uvicorn[standard]
+sqlalchemy
+psycopg2-binary
+python-dotenv
+passlib[bcrypt]
+python-jose
+playwright
+python-multipart
