@@ -1,0 +1,29 @@
+__pycache__
+*.py[cod]
+*.pyo
+*.pyd
+*.pkl
+*.db
+*.sqlite3
+*.log
+*.egg
+*.egg-info
+*.dist-info
+*.whl
+*.coverage
+*.mypy_cache
+.venv
+*.env
+*.DS_Store
+# Local configuration files
+config.ini
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints
+# PyCharm project files
+.idea/
+# VS Code workspace settings
+.vscode/
+# Pytest cache
+.pytest_cache/
+# Coverage reports
+.coverage
