@@ -16,3 +16,5 @@ class Patent(Base):
     depositante = Column(String)
     inventores = Column(String)
     url_detalhe = Column(String)
+    status = Column(Integer, default=0)
+    info = Column(JSON, nullable=True)

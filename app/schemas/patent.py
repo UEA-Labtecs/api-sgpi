@@ -1,7 +1,8 @@
 from pydantic import BaseModel
-from typing import Optional, List
+from typing import Optional, List, Dict
 
 class PatentSchema(BaseModel):
+    id: Optional[int] = None
     numero_pedido: Optional[str]
     data_deposito: Optional[str]
     data_publicacao: Optional[str]
@@ -13,6 +14,16 @@ class PatentSchema(BaseModel):
     depositante: Optional[str]
     inventores: Optional[str]
     url_detalhe: Optional[str]
+    status: Optional[int] = 0
+    info: Optional[Dict[int, dict]] = None
 
     class Config:
-        orm_mode = True
+        from_attributes = True
+
+class PatentCreateSchema(PatentSchema):
+    pass
+
+class EtapasUpdate(BaseModel):
+    status: int
+    info: Dict[int, Dict[str, str]] 
+    
