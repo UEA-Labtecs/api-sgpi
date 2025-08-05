@@ -1,23 +1,16 @@
 version: '3'
 
 services:
-  # db:
-  #   image: postgres
-  #   environment:
-  #     POSTGRES_USER: postgres
-  #     POSTGRES_PASSWORD: postgres
-  #     POSTGRES_DB: postgres
-  #   ports:
-  #     - "5432:5432"
-  #   volumes:
-  #     - ./postgres-data:/var/lib/postgresql/data
-
   api:
     build: .
     ports:
       - "8009:8009"
-    # depends_on:
-    # - db
     environment:
       - DATABASE_URL=postgresql://postgres:teste-dean@24.199.108.245:5445/sgpi
       - SECRET_KEY=supersecret
+    networks:
+      - nginx_proxy
+
+networks:
+  nginx_proxy:
+    external: true
