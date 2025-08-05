@@ -1,24 +1,40 @@
-# Use versão compatível com seu package.json
-FROM node:22-slim
+FROM python:3.12-slim
 
 WORKDIR /app
 
-# Copie apenas os arquivos de dependência primeiro (melhora o cache)
-COPY package*.json ./
+# Instala dependências do sistema necessárias para o Playwright funcionar
+RUN apt-get update && apt-get install -y \
+    libnss3 \
+    libnspr4 \
+    libatk1.0-0 \
+    libatk-bridge2.0-0 \
+    libatspi2.0-0 \
+    libxcomposite1 \
+    libxdamage1 \
+    libxfixes3 \
+    libxrandr2 \
+    libgbm1 \
+    libxkbcommon0 \
+    libasound2 \
+    libdbus-1-3 \
+    wget \
+    curl \
+    unzip \
+    fonts-liberation \
+    libappindicator3-1 \
+    xdg-utils \
+    && rm -rf /var/lib/apt/lists/*
 
-# Instala dependências
-RUN npm install
+# Instala dependências Python
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
 
-# Copia o restante do projeto
+# Instala os navegadores do Playwright
+RUN pip install playwright && playwright install --with-deps
+
+# Copia os arquivos da API
 COPY . .
 
-# Gera o build de produção
-RUN npm run build
+EXPOSE 8009
 
-# Instala servidor estático (serve)
-RUN npm install -g serve
-
-EXPOSE 3001
-
-# Inicia o servidor estático servindo a pasta dist
-CMD ["serve", "-s", "dist", "-l", "3001"]
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8009"]
