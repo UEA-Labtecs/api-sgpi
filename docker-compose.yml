@@ -17,7 +17,7 @@ services:
     ports:
       - "8009:8009"
     depends_on:
-      - db
+    # - db
     environment:
       - DATABASE_URL=postgresql://postgres:postgres@db:5432/postgres
       - SECRET_KEY=supersecret
