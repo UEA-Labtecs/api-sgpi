@@ -16,8 +16,8 @@ services:
     build: .
     ports:
       - "8009:8009"
-    depends_on:
+    # depends_on:
     # - db
     environment:
-      - DATABASE_URL=postgresql://postgres:postgres@db:5432/postgres
+      - DATABASE_URL=postgresql://postgres:teste-dean@24.199.108.245:5445/sgpi
       - SECRET_KEY=supersecret
