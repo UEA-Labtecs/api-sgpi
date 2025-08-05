@@ -1,12 +1,24 @@
-FROM python:3.12
+# Use versão compatível com seu package.json
+FROM node:22-slim
 
 WORKDIR /app
 
-COPY . requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+# Copie apenas os arquivos de dependência primeiro (melhora o cache)
+COPY package*.json ./
 
-COPY . /app
+# Instala dependências
+RUN npm install
 
-EXPOSE 8009
+# Copia o restante do projeto
+COPY . .
 
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8009"]
+# Gera o build de produção
+RUN npm run build
+
+# Instala servidor estático (serve)
+RUN npm install -g serve
+
+EXPOSE 3001
+
+# Inicia o servidor estático servindo a pasta dist
+CMD ["serve", "-s", "dist", "-l", "3001"]
