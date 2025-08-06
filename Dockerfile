@@ -1,21 +1,17 @@
-FROM mcr.microsoft.com/playwright/python:v1.44.0-jammy
+FROM python:3.12-slim
+
+# Instalações necessárias para o Playwright funcionar
+RUN apt-get update && apt-get install -y wget curl unzip fonts-liberation \
+    libnss3 libxss1 libasound2 libatk1.0-0 libatk-bridge2.0-0 libcups2 libxrandr2 libgbm1 libgtk-3-0
+
+RUN pip install --upgrade pip
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+RUN playwright install
 
 WORKDIR /app
-
-# Atualiza pip, setuptools, wheel e certifi para evitar problemas de SSL
-RUN pip install --upgrade pip setuptools wheel certifi
-
-# Copia apenas requirements.txt primeiro para usar cache de dependências
-COPY requirements.txt .
-
-# Usa trusted-hosts para contornar problemas com SSL
-RUN pip install --no-cache-dir -r requirements.txt \
-    --trusted-host pypi.org \
-    --trusted-host files.pythonhosted.org
-
-# Copia o restante do código
 COPY . .
 
 EXPOSE 8009
-
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8009"]
