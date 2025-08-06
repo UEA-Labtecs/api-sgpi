@@ -2,16 +2,15 @@ FROM mcr.microsoft.com/playwright/python:v1.44.0-jammy
 
 WORKDIR /app
 
-# Instala dependências de sistema
-RUN playwright install-deps
-
-# Instala dependências Python
+# Copia e instala dependências Python primeiro (inclui playwright)
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Instala navegadores (Chromium, Firefox, WebKit)
+# Agora que o comando "playwright" existe, pode instalar deps e navegadores
+RUN playwright install-deps
 RUN playwright install
 
+# Copia o restante do código da aplicação
 COPY . .
 
 EXPOSE 8009
