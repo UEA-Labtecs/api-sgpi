@@ -19,7 +19,7 @@ def buscar_patentes(
 ):
     return crawler_service.run_crawler(db, termo, quantidade)
 
-@router.get("/", response_model=List[PatentSchema])
+@router.get("", response_model=List[PatentSchema])
 def listar_patentes(db: Session = Depends(get_db)):
     return db.query(Patent).all()
 
