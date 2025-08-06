@@ -1,38 +1,19 @@
-FROM python:3.12-slim
+FROM mcr.microsoft.com/playwright/python:v1.44.0-jammy
 
 WORKDIR /app
 
-# Instala dependências do sistema necessárias para o Playwright funcionar
-RUN apt-get update && apt-get install -y \
-    libnss3 \
-    libnspr4 \
-    libatk1.0-0 \
-    libatk-bridge2.0-0 \
-    libatspi2.0-0 \
-    libxcomposite1 \
-    libxdamage1 \
-    libxfixes3 \
-    libxrandr2 \
-    libgbm1 \
-    libxkbcommon0 \
-    libasound2 \
-    libdbus-1-3 \
-    wget \
-    curl \
-    unzip \
-    fonts-liberation \
-    libappindicator3-1 \
-    xdg-utils \
-    && rm -rf /var/lib/apt/lists/*
+# Atualiza pip, setuptools, wheel e certifi para evitar problemas de SSL
+RUN pip install --upgrade pip setuptools wheel certifi
 
-# Instala dependências Python
+# Copia apenas requirements.txt primeiro para usar cache de dependências
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
 
-# Instala os navegadores do Playwright
-RUN pip install playwright && playwright install --with-deps
+# Usa trusted-hosts para contornar problemas com SSL
+RUN pip install --no-cache-dir -r requirements.txt \
+    --trusted-host pypi.org \
+    --trusted-host files.pythonhosted.org
 
-# Copia os arquivos da API
+# Copia o restante do código
 COPY . .
 
 EXPOSE 8009
