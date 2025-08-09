@@ -1,4 +1,5 @@
-from sqlalchemy import Column, Integer, String, JSON
+from sqlalchemy import Column, ForeignKey, Integer, String, JSON
+from sqlalchemy.orm import relationship
 from app.core.database import Base
 
 class Patent(Base):
@@ -16,5 +17,6 @@ class Patent(Base):
     depositante = Column(String)
     inventores = Column(String)
     url_detalhe = Column(String)
-    status = Column(Integer, default=0)
-    info = Column(JSON, nullable=True)
+    
+    user_patent_id = Column(Integer, ForeignKey("user_patents.id"), nullable=True)
+    user_patent = relationship("UserPatent", back_populates="patents")

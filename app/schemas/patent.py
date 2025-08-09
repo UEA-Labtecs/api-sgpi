@@ -24,6 +24,5 @@ class PatentCreateSchema(PatentSchema):
     pass
 
 class EtapasUpdate(BaseModel):
-    status: int
     info: Dict[int, Dict[str, str]] 
     
