@@ -22,9 +22,9 @@ def buscar_patentes(
 ):
     return crawler_service.run_crawler(db, termo, quantidade, user_patent_id)
 
-@router.get("", response_model=List[PatentSchema])
+@router.get("", response_model=List[UserPatentSchema])
 def listar_patentes(db: Session = Depends(get_db)):
-    return db.query(Patent).all()
+    return  db.query(UserPatent).all()
 
 @router.get("/{patent_id}", response_model=UserPatentSchema)
 def buscar_por_id(patent_id: int, db: Session = Depends(get_db)):
@@ -46,27 +46,43 @@ def criar_patente(patente: PatentCreateSchema, db: Session = Depends(get_db)):
     db.refresh(db_patent)
     return db_patent
 
-@router.put("/{patent_id}/etapas", response_model=dict)
+@router.put(
+    "/{patent_id}/etapas",
+    response_model=UserPatentSchema,
+    response_model_exclude_none=True
+)
 def atualizar_etapas(
     patent_id: int,
-    data: EtapasUpdate = ...,
-    db: Session = Depends(get_db)
+    data: EtapasUpdate,
+    db: Session = Depends(get_db),
 ):
-    patent = db.query(UserPatent).filter(UserPatent.id == patent_id).first()
+    patent = (
+        db.query(UserPatent)
+        .filter(UserPatent.id == patent_id)
+        .first()
+    )
     if not patent:
         raise HTTPException(status_code=404, detail="Patente não encontrada")
 
-    patent.status = data.info.__len__()
+    # Atualiza info (substituindo pelo payload do front)
     patent.info = data.info
+
+    # Atualiza status: se veio no payload, usa; caso contrário, avança 1
+    if data.status is not None:
+        patent.status = data.status
+    else:
+        patent.status = (patent.status or 0) + 1
+
     db.commit()
-    db.refresh(patent)
-    return {
-        "id": patent.id,
-        "titulo": patent.titulo,
-        "status": patent.status,
-        "info": patent.info,
-    }
-    
+
+    # Retorna com as patentes relacionadas carregadas
+    patent = (
+        db.query(UserPatent)
+        .options(joinedload(UserPatent.patents))
+        .filter(UserPatent.id == patent_id)
+        .first()
+    )
+    return patent
 
 @router.post("/minhas-patentes", response_model=UserPatentSchema)
 def criar_user_patent(data: UserPatentCreate, db: Session = Depends(get_db)):

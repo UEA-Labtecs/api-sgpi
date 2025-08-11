@@ -9,7 +9,7 @@ class UserPatent(Base):
     id = Column(Integer, primary_key=True, index=True)
     titulo = Column(String, nullable=False)
     descricao = Column(Text)
-    status = Column(Integer, nullable=False, default=0, server_default=text("0"))
+    status = Column(Integer, nullable=False, default=1, server_default=text("1"))
     info = Column(JSON, nullable=True)
 
     patents = relationship("Patent", back_populates="user_patent", cascade="all, delete-orphan")

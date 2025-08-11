@@ -23,6 +23,7 @@ if config.config_file_name is not None:
 from app.core.database import Base
 from app.models.userPatents import UserPatent  # ajuste o import se seu arquivo for user_patent.py
 from app.models.patent import Patent
+from app.models.user import User
 
 target_metadata = Base.metadata
 

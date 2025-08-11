@@ -4,8 +4,8 @@ from alembic import op
 import sqlalchemy as sa
 
 # --- Identificadores da revisão ---
-revision = "747bacce7d86"        # pode manter esse id
-down_revision = None             # ou a revisão anterior, se existir
+revision = "747bacce7d86"
+down_revision = "bf4c8ea79ab8" # ou a revisão anterior, se existir
 branch_labels = None
 depends_on = None
 
