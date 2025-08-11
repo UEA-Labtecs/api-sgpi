@@ -8,9 +8,9 @@ services:
     environment:
       - DATABASE_URL=postgresql://postgres:teste-dean@24.199.108.245:5445/sgpi
       - SECRET_KEY=supersecret
-    # networks:
-      # - nginx_proxy
+    networks:
+      - nginx_proxy
 
-# networks:
-#   nginx_proxy:
-#     external: true
+networks:
+  nginx_proxy:
+    external: true
