@@ -8,6 +8,16 @@ services:
     environment:
       - DATABASE_URL=postgresql://postgres:teste-dean@24.199.108.245:5445/sgpi
       - SECRET_KEY=supersecret
+      # MinIO (seus valores atuais)
+      - MINIO_ENDPOINT=minio:9000
+      - MINIO_ACCESS_KEY=minioadmin
+      - MINIO_SECRET_KEY=minioadmin
+      - MINIO_SECURE=false
+      - MINIO_BUCKET=sgpi-files
+    # Dev-only: autogerar migrations
+    # - AUTO_MIGRATE=1
+    depends_on:
+      - minio
     networks:
       - nginx_proxy
   
