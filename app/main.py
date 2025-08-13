@@ -1,5 +1,6 @@
 from fastapi import FastAPI
-from app.routes import auth, dashboard, patent
+from app.core.minioClient import init_minio
+from app.routes import auth, dashboard, patent, userPatentStage
 from app.core.database import Base, engine
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -15,7 +16,12 @@ app.add_middleware(
 app.include_router(auth.router)
 app.include_router(patent.router)
 app.include_router(dashboard.router) 
+app.include_router(userPatentStage.router)
 
+@app.on_event("startup")
+def _startup():
+    init_minio(app)
+    
 @app.get("/ping")
 def ping():
     return {"message": "pong"}

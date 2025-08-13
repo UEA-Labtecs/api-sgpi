@@ -8,3 +8,4 @@ python-jose
 playwright
 python-multipart
 alembic
+minio>=7.2.8

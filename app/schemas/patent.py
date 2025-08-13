@@ -1,9 +1,10 @@
+import re
 from pydantic import BaseModel, field_validator
-from typing import Any, Optional, List, Dict
+from typing import Any, Optional, List
 
 class PatentSchema(BaseModel):
     id: Optional[int] = None
-    numero_pedido: Optional[str]  = None
+    numero_pedido: Optional[str] = None
     data_deposito: Optional[str] = None
     data_publicacao: Optional[str] = None
     data_concessao: Optional[str] = None
@@ -14,9 +15,8 @@ class PatentSchema(BaseModel):
     depositante: Optional[str] = None
     inventores: Optional[str] = None
     url_detalhe: Optional[str] = None
-    status: Optional[int] = 0
-    info: Optional[Dict[int, dict]] = None
-    
+    user_patent_id: Optional[int] = None  # para vincular a uma "minha patente"
+
     @field_validator("classificacao_ipc", "classificacao_cpc", mode="before")
     @classmethod
     def normalize_classificacao(cls, v: Any):
@@ -33,9 +33,6 @@ class PatentSchema(BaseModel):
 
     class Config:
         from_attributes = True
+
 class PatentCreateSchema(PatentSchema):
     pass
-
-class EtapasUpdate(BaseModel):
-    info: Dict[int, Dict[str, str]]
-    status: Optional[int] = None  

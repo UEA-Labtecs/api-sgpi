@@ -1,6 +1,5 @@
 from sqlalchemy.orm import Session
-from passlib.context import CryptContext
-from app.models.user import User
+from app.models.user import User, UserRole
 from app.schemas.user import UserCreate
 from app.core.security import create_access_token, verify_password, get_password_hash
 
@@ -10,7 +9,9 @@ class AuthService:
         db_user = User(
             email=user.email,
             name=user.name,
-            hashed_password=hashed_password
+            hashed_password=hashed_password,
+            tenant_id=user.tenant_id,
+            role=user.role or UserRole.user,
         )
         db.add(db_user)
         db.commit()

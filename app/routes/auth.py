@@ -1,6 +1,9 @@
+# app/routes/auth.py
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
+from app.core.securityDeps import get_current_user
+from app.models.user import User
 from app.schemas.user import Token, UserCreate
 from app.core.database import get_db
 from app.services.auth_service import auth_service
@@ -20,3 +23,7 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depend
         raise HTTPException(status_code=400, detail="Incorrect email or password")
     token = auth_service.create_token({"sub": user.email})
     return {"access_token": token, "token_type": "bearer"}
+
+@router.get("/me")
+def me(current_user: User = Depends(get_current_user)):
+    return {"id": current_user.id, "email": current_user.email, "name": current_user.name, "role": current_user.role}
