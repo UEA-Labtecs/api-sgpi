@@ -10,7 +10,7 @@ services:
       - DATABASE_URL=postgresql://postgres:postgres@24.199.108.245:5445/sgpi
       - SECRET_KEY=supersecret
       # MinIO
-      - MINIO_ENDPOINT=minio.labtecs.com.br
+      - MINIO_ENDPOINT=http://minio.labtecs.com.br
       - MINIO_ACCESS_KEY=minioadmin
       - MINIO_SECRET_KEY=minioadmin
       - MINIO_SECURE=false
