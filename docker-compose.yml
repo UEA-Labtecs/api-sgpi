@@ -3,24 +3,47 @@ version: '3.9'
 services:
   api:
     build: .
+    container_name: sgpi_api
     ports:
       - "8009:8009"
     environment:
-      - DATABASE_URL=postgresql://postgres:teste-dean@24.199.108.245:5445/sgpi
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/sgpi   # <- agora usa o serviço interno
       - SECRET_KEY=supersecret
-      # MinIO (seus valores atuais)
+      # MinIO
       - MINIO_ENDPOINT=minio:9000
       - MINIO_ACCESS_KEY=minioadmin
       - MINIO_SECRET_KEY=minioadmin
       - MINIO_SECURE=false
       - MINIO_BUCKET=sgpi-files
-    # Dev-only: autogerar migrations
+    # Dev-only: autogerar migrations (se quiser)
     # - AUTO_MIGRATE=1
     depends_on:
+      - postgres
       - minio
     networks:
-      - nginx_proxy
-  
+      - nginx_proxy     # para o Nginx/NPM resolver "api"
+      - backend         # rede interna para falar com o Postgres
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: postgres
+    environment:
+      POSTGRES_DB: sgpi
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    # Se quiser acessar de fora para debug (opcional):
+    # ports:
+    #   - "5445:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d sgpi"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - backend
+
   minio:
     image: minio/minio:latest
     container_name: minio
@@ -33,7 +56,14 @@ services:
     command: server /data --console-address ":9001"
     volumes:
       - ./data/minio:/data
+    networks:
+      - nginx_proxy
 
 networks:
   nginx_proxy:
     external: true
+  backend:
+    driver: bridge
+
+volumes:
+  pgdata:
