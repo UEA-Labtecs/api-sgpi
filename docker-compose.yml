@@ -51,6 +51,8 @@ services:
       - "9000:9000"   # S3 API
       - "9001:9001"   # Console
     environment:
+      MINIO_SERVER_URL: https://api-minio.labtecs.com.br
+      MINIO_BROWSER_REDIRECT_URL: https://minio.labtecs.com.br
       MINIO_ROOT_USER: minioadmin
       MINIO_ROOT_PASSWORD: minioadmin
     command: server /data --console-address ":9001"

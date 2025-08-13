@@ -1,48 +1,33 @@
 from datetime import timedelta
-import io
-from fastapi import UploadFile
-from minio import Minio
-from minio.error import S3Error
-from starlette.datastructures import UploadFile as StarletteUploadFile
 
 DEFAULT_EXPIRATION = timedelta(hours=1)
 
 class StorageService:
-    def __init__(self, client: Minio, bucket: str):
-        self.client = client
+    def __init__(self, client_internal, client_public, bucket: str):
+        self.client_internal = client_internal
+        self.client_public = client_public or client_internal  # fallback
         self.bucket = bucket
 
-    async def upload(self, file: UploadFile, key: str) -> str:
-        # lê o arquivo do UploadFile
-        content = await file.read()
-        data = io.BytesIO(content)
-        size = len(content)
-        content_type = file.content_type or "application/octet-stream"
-
-        # faz upload
-        self.client.put_object(
-            bucket_name=self.bucket,
-            object_name=key,
-            data=data,
-            length=size,
-            content_type=content_type,
+    async def upload(self, upload_file, key: str) -> str:
+        # grava com o cliente interno
+        data = await upload_file.read()
+        self.client_internal.put_object(
+            self.bucket, key, data=bytes(data), length=len(data), content_type=upload_file.content_type or "application/octet-stream"
         )
-        # Retorne a key (ou uma URL assinada, se preferir)
         return key
 
-    def get_presigned_url(self, key: str, expires: int = DEFAULT_EXPIRATION) -> str:
-        return self.client.presigned_get_object(self.bucket, key, expires=expires)
+    def delete(self, key: str):
+        self.client_internal.remove_object(self.bucket, key)
 
-    def delete(self, key: str) -> None:
-        self.client.remove_object(self.bucket, key)
+    def get_presigned_url(self, key: str, expires_seconds: int = 3600) -> str:
+        # assina com o cliente público (host público)
+        return self.client_public.presigned_get_object(
+            self.bucket, key, expires=timedelta(seconds=expires_seconds)
+        )
 
-    def exists(self, key: str) -> bool:
-        try:
-            self.client.stat_object(self.bucket, key)
-            return True
-        except S3Error:
-            return False
-
-# Factory helper
-def build_storage_from_app(app) -> StorageService:
-    return StorageService(client=app.state.minio, bucket=app.state.minio_bucket)
+def build_storage_from_app(app):
+    return StorageService(
+        client_internal=app.state.minio_internal,
+        client_public=app.state.minio_public,
+        bucket=app.state.minio_bucket,
+    )

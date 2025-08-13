@@ -1,27 +1,28 @@
 import os
 from minio import Minio
-from minio.error import S3Error
-from fastapi import FastAPI
 
-def get_minio_client() -> Minio:
-    endpoint = os.getenv("MINIO_ENDPOINT", "localhost:9000")
-    access_key = os.getenv("MINIO_ACCESS_KEY", "minioadmin")
-    secret_key = os.getenv("MINIO_SECRET_KEY", "minioadmin")
-    secure = os.getenv("MINIO_SECURE", "false").lower() == "true"
-    return Minio(endpoint, access_key=access_key, secret_key=secret_key, secure=secure)
-
-def init_minio(app: FastAPI):
-    client = get_minio_client()
+def init_minio(app):
+    # interno (para I/O)
+    endpoint = os.getenv("MINIO_ENDPOINT", "minio:9000")
+    access = os.getenv("MINIO_ACCESS_KEY", "minioadmin")
+    secret = os.getenv("MINIO_SECRET_KEY", "minioadmin")
+    secure = str(os.getenv("MINIO_SECURE", "false")).lower() in ("1","true","yes")
     bucket = os.getenv("MINIO_BUCKET", "sgpi-files")
-    region = os.getenv("MINIO_REGION", None)
 
-    found = client.bucket_exists(bucket)
-    if not found:
-        client.make_bucket(bucket, location=region) if region else client.make_bucket(bucket)
-    # Opcional: política pública só de leitura (se quiser links públicos):
-    # from minio.commonconfig import Policy
-    # client.set_bucket_policy(bucket, policy_json_string)
+    client_internal = Minio(endpoint, access_key=access, secret_key=secret, secure=secure)
 
-    # guardar na app.state para reuso
-    app.state.minio = client
+    # garante bucket usando o cliente interno
+    if not client_internal.bucket_exists(bucket):
+        client_internal.make_bucket(bucket)
+
+    # público (apenas para assinar URLs)
+    pub_endpoint = os.getenv("MINIO_PUBLIC_ENDPOINT")
+    pub_secure = str(os.getenv("MINIO_PUBLIC_SECURE", "true")).lower() in ("1","true","yes")
+
+    client_public = None
+    if pub_endpoint:
+        client_public = Minio(pub_endpoint, access_key=access, secret_key=secret, secure=pub_secure)
+
+    app.state.minio_internal = client_internal
+    app.state.minio_public = client_public
     app.state.minio_bucket = bucket
