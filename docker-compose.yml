@@ -32,8 +32,8 @@ services:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
     # Se quiser acessar de fora para debug (opcional):
-    # ports:
-    #   - "5445:5432"
+    ports:
+      - "5432:5445"
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
