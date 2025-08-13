@@ -1,8 +1,5 @@
 from datetime import timedelta
 import io
-import os
-import time
-from typing import Optional
 from fastapi import UploadFile
 from minio import Minio
 from minio.error import S3Error
