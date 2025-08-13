@@ -7,22 +7,30 @@ services:
     ports:
       - "8009:8009"
     environment:
-      - DATABASE_URL=postgresql://postgres:postgres@24.199.108.245:5445/sgpi
+      # DB interno (use o serviço 'postgres' da rede docker)
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/sgpi
+
       - SECRET_KEY=supersecret
-      # MinIO
-      - MINIO_ENDPOINT=http://minio.labtecs.com.br:9000
+
+      # MinIO interno (rede docker) para upload/delete/list
+      - MINIO_ENDPOINT=minio:9000          # sem http://
+      - MINIO_SECURE=false
       - MINIO_ACCESS_KEY=minioadmin
       - MINIO_SECRET_KEY=minioadmin
-      - MINIO_SECURE=false
       - MINIO_BUCKET=sgpi-files
-    # Dev-only: autogerar migrations (se quiser)
+
+      # MinIO público (apenas para presigned URLs)
+      - MINIO_PUBLIC_ENDPOINT=api-minio.labtecs.com.br  # sem https://
+      - MINIO_PUBLIC_SECURE=true
+
+    # opcional dev:
     # - AUTO_MIGRATE=1
     depends_on:
       - postgres
       - minio
     networks:
-      - nginx_proxy     # para o Nginx/NPM resolver "api"
-      - backend         # rede interna para falar com o Postgres
+      - nginx_proxy     # fala com 'minio'
+      - backend         # fala com 'postgres'
 
   postgres:
     image: postgres:16-alpine
@@ -31,7 +39,7 @@ services:
       POSTGRES_DB: sgpi
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
-    # Se quiser acessar de fora para debug (opcional):
+    # exponha só se precisar acessar de fora:
     ports:
       - "5445:5432"
     volumes:
@@ -51,8 +59,10 @@ services:
       - "9000:9000"   # S3 API
       - "9001:9001"   # Console
     environment:
+      # URLs públicas corretas para o MinIO anunciar nos links do console
       MINIO_SERVER_URL: https://api-minio.labtecs.com.br
       MINIO_BROWSER_REDIRECT_URL: https://minio.labtecs.com.br
+
       MINIO_ROOT_USER: minioadmin
       MINIO_ROOT_PASSWORD: minioadmin
     command: server /data --console-address ":9001"
