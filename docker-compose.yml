@@ -7,7 +7,7 @@ services:
     ports:
       - "8009:8009"
     environment:
-      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/sgpi   # <- agora usa o serviço interno
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5445/sgpi
       - SECRET_KEY=supersecret
       # MinIO
       - MINIO_ENDPOINT=minio:9000
