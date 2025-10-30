@@ -146,6 +146,16 @@ jobs:
           docker stop api-sgpi 2>/dev/null || true
           docker rm api-sgpi 2>/dev/null || true
       
+      - name: Ensure Docker network exists
+        run: |
+          if ! docker network inspect nginx_proxy >/dev/null 2>&1; then
+            echo "📡 Creating nginx_proxy network..."
+            docker network create nginx_proxy
+            echo "✅ Network nginx_proxy created"
+          else
+            echo "✅ Network nginx_proxy already exists"
+          fi
+      
       - name: Start new container
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}

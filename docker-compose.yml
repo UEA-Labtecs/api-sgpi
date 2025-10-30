@@ -13,14 +13,14 @@ services:
       - SECRET_KEY=supersecret
 
       # MinIO interno (rede docker) para upload/delete/list
-      - MINIO_ENDPOINT=minio:9000          # sem http://
+      - MINIO_ENDPOINT=minio:9000 # sem http://
       - MINIO_SECURE=false
       - MINIO_ACCESS_KEY=minioadmin
       - MINIO_SECRET_KEY=minioadmin
       - MINIO_BUCKET=sgpi-files
 
       # MinIO público (apenas para presigned URLs)
-      - MINIO_PUBLIC_ENDPOINT=api-minio.labtecs.com.br  # sem https://
+      - MINIO_PUBLIC_ENDPOINT=api-minio.labtecs.com.br # sem https://
       - MINIO_PUBLIC_SECURE=true
 
     # opcional dev:
@@ -29,8 +29,8 @@ services:
       - postgres
       - minio
     networks:
-      - nginx_proxy     # fala com 'minio'
-      - backend         # fala com 'postgres'
+      - nginx_proxy # fala com 'minio'
+      - backend # fala com 'postgres'
 
   postgres:
     image: postgres:16-alpine
@@ -45,7 +45,7 @@ services:
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d sgpi"]
+      test: [ "CMD-SHELL", "pg_isready -U postgres -d sgpi" ]
       interval: 5s
       timeout: 5s
       retries: 10
@@ -56,8 +56,8 @@ services:
     image: minio/minio:latest
     container_name: minio
     ports:
-      - "9000:9000"   # S3 API
-      - "9001:9001"   # Console
+      - "9000:9000" # S3 API
+      - "9001:9001" # Console
     environment:
       # URLs públicas corretas para o MinIO anunciar nos links do console
       MINIO_SERVER_URL: https://api-minio.labtecs.com.br
@@ -69,10 +69,10 @@ services:
     volumes:
       - ./data/minio:/data
     networks:
-      - nginx_proxy
+      - sgpi_network
 
 networks:
-  nginx_proxy:
+  sgpi_network:
     external: true
   backend:
     driver: bridge
