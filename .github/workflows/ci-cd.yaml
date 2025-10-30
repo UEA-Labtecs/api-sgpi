@@ -156,6 +156,38 @@ jobs:
             echo "✅ Network nginx_proxy already exists"
           fi
       
+      - name: Discover PostgreSQL network
+        id: pg_network
+        run: |
+          # Extrair hostname do DATABASE_URL (se existir como container name)
+          # Formato: postgresql://user:pass@host:port/db
+          DB_HOST=$(echo "${{ secrets.DATABASE_URL }}" | sed -n 's/.*@\([^:/\?]*\).*/\1/p' || echo "")
+          
+          if [ -n "$DB_HOST" ]; then
+            # Verificar se é um container existente
+            if docker ps --format '{{.Names}}' | grep -q "^${DB_HOST}$" || docker ps -a --format '{{.Names}}' | grep -q "^${DB_HOST}$"; then
+              echo "🔍 PostgreSQL container encontrado: ${DB_HOST}"
+              # Descobrir a rede do container PostgreSQL
+              PG_NETWORK=$(docker inspect ${DB_HOST} --format '{{range $net, $conf := .NetworkSettings.Networks}}{{$net}}{{println}}{{end}}' | head -1 | tr -d '\n' || echo "")
+              
+              if [ -n "$PG_NETWORK" ] && [ "$PG_NETWORK" != "nginx_proxy" ]; then
+                echo "📡 PostgreSQL está na rede: ${PG_NETWORK}"
+                echo "network=${PG_NETWORK}" >> $GITHUB_OUTPUT
+              else
+                echo "⚠️  PostgreSQL na rede padrão ou mesma rede que nginx_proxy"
+                echo "network=" >> $GITHUB_OUTPUT
+              fi
+            else
+              echo "ℹ️  PostgreSQL não é um container Docker (pode ser host externo)"
+              echo "network=" >> $GITHUB_OUTPUT
+            fi
+          else
+            echo "ℹ️  Não foi possível extrair hostname do DATABASE_URL"
+            echo "network=" >> $GITHUB_OUTPUT
+          fi
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      
       - name: Start new container
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL_SGPI }}
@@ -188,6 +220,7 @@ jobs:
           echo "🚀 Iniciando container:"
           echo "   📍 Host: ${HOST_PORT} → Container: ${CONTAINER_PORT}"
           
+          # Criar container na rede nginx_proxy
           docker run -d \
             --name api-sgpi \
             --restart unless-stopped \
@@ -203,6 +236,13 @@ jobs:
             -e MINIO_PUBLIC_ENDPOINT="${MINIO_PUBLIC_ENDPOINT}" \
             -e MINIO_PUBLIC_SECURE="${MINIO_PUBLIC_SECURE}" \
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+          
+          # Conectar à rede do PostgreSQL se necessário
+          PG_NETWORK="${{ steps.pg_network.outputs.network }}"
+          if [ -n "$PG_NETWORK" ]; then
+            echo "🔗 Conectando container à rede PostgreSQL: ${PG_NETWORK}"
+            docker network connect ${PG_NETWORK} api-sgpi || echo "⚠️  Não foi possível conectar à rede ${PG_NETWORK}"
+          fi
       
       - name: Wait for container to start
         run: sleep 10
