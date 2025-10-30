@@ -56,10 +56,15 @@ try:
             current_version = result.fetchone()
             
             if not current_version:
-                print("[entrypoint] Marcando migration baseline como aplicada...")
-                conn.execute(text("INSERT INTO alembic_version (version_num) VALUES ('bf4c8ea79ab8') ON CONFLICT DO NOTHING"))
+                print("[entrypoint] Descobrindo head revision e marcando como aplicada...")
+                import subprocess
+                result = subprocess.run(['alembic', 'heads'], capture_output=True, text=True)
+                head_rev = '4647eb46a804'  # fallback
+                if result.returncode == 0 and result.stdout.strip():
+                    head_rev = result.stdout.strip().split()[0]
+                conn.execute(text(f"INSERT INTO alembic_version (version_num) VALUES ('{head_rev}') ON CONFLICT DO NOTHING"))
                 conn.commit()
-                print("[entrypoint] ✅ Migration baseline marcada como aplicada")
+                print(f"[entrypoint] ✅ Head revision {head_rev} marcada como aplicada")
             else:
                 print(f"[entrypoint] ✅ Alembic já na versão: {current_version[0]}")
         else:
