@@ -32,7 +32,7 @@ def get_current_user(
     return user
 
 def require_admin(current_user: User = Depends(get_current_user)) -> User:
-    if (current_user.role or "").lower() != "admin":
+    if current_user.role != UserRole.admin:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Admin only")
     return current_user
 
@@ -48,14 +48,13 @@ def same_tenant_or_404(db: Session, user: User, user_patent_id: int):
 
 def require_roles(*allowed):
     def _dep(current_user: User = Depends(get_current_user)) -> User:
-        role = (current_user.role or "").lower()
-        if role not in [r.lower() for r in allowed]:
+        if current_user.role not in allowed:
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Forbidden")
         return current_user
     return _dep
 
 def require_write_access(current_user: User = Depends(get_current_user)) -> User:
     # bloqueia quem é somente leitura
-    if (current_user.role or "").lower() in ("viewer", "read_only", "leitor"):
+    if current_user.role == UserRole.viewer:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Conta somente leitura")
     return current_user

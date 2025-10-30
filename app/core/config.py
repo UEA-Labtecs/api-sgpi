@@ -20,3 +20,9 @@ DATABASE_URL = (
     os.getenv("DATABASE_URL")
     or f"postgresql://{POSTGRES_USER}:{POSTGRES_PASSWORD}@{POSTGRES_HOST}:{POSTGRES_PORT}/{POSTGRES_DB}"
 )
+
+# CORS Configuration
+CORS_ORIGINS = os.getenv(
+    "CORS_ORIGINS",
+    "http://sgpi.labtecs.com.br,https://api-sgpi.labtecs.com.br,http://api-sgpi.labtecs.com.br,https://sgpi.labtecs.com.br,http://localhost:3000,http://localhost:5173"
+).split(",")
