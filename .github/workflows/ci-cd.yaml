@@ -188,9 +188,52 @@ jobs:
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
       
+      - name: Fix DATABASE_URL for container communication
+        id: fix_db_url
+        run: |
+          DB_URL="${{ secrets.DATABASE_URL_SGPI }}"
+          
+          # Procurar por containers PostgreSQL rodando
+          PG_CONTAINER=$(docker ps --format '{{.Names}}' | grep -i postgres | head -1 || echo "")
+          
+          if [ -n "$PG_CONTAINER" ]; then
+            echo "🔍 PostgreSQL container encontrado: ${PG_CONTAINER}"
+            
+            # Descobrir a rede do container PostgreSQL
+            PG_NETWORK=$(docker inspect ${PG_CONTAINER} --format '{{range $net, $conf := .NetworkSettings.Networks}}{{println $net}}{{end}}' | grep -v "^$" | head -1 | tr -d '\n' || echo "")
+            
+            if [ -n "$PG_NETWORK" ]; then
+              echo "📡 PostgreSQL está na rede: ${PG_NETWORK}"
+              echo "network=${PG_NETWORK}" >> $GITHUB_OUTPUT
+            fi
+            
+            # Extrair partes do DATABASE_URL
+            # Formato: postgresql://user:pass@host:port/db
+            if echo "$DB_URL" | grep -q "@"; then
+              # Extrair user:pass, host:port, db
+              AUTH_PART=$(echo "$DB_URL" | sed -n 's|.*://\([^@]*\)@.*|\1|p')
+              DB_PART=$(echo "$DB_URL" | sed -n 's|.*/\([^/?]*\).*|\1|p')
+              
+              # Usar porta interna do PostgreSQL (5432) ao conectar via container
+              PG_PORT="5432"
+              
+              # Construir novo URL com nome do container e porta interna
+              NEW_DB_URL="postgresql://${AUTH_PART}@${PG_CONTAINER}:${PG_PORT}/${DB_PART}"
+              echo "📝 DATABASE_URL ajustado para usar container: ${NEW_DB_URL}"
+              echo "url=${NEW_DB_URL}" >> $GITHUB_OUTPUT
+            else
+              echo "⚠️  Formato de DATABASE_URL não reconhecido, usando original"
+              echo "url=${DB_URL}" >> $GITHUB_OUTPUT
+            fi
+          else
+            echo "ℹ️  Nenhum container PostgreSQL encontrado, usando DATABASE_URL original"
+            echo "url=${DB_URL}" >> $GITHUB_OUTPUT
+            echo "network=" >> $GITHUB_OUTPUT
+          fi
+      
       - name: Start new container
         env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL_SGPI }}
+          DATABASE_URL: ${{ steps.fix_db_url.outputs.url }}
           SECRET_KEY: ${{ secrets.SGPI_SECRET_KEY }}
           MINIO_ENDPOINT: ${{ secrets.MINIO_ENDPOINT }}
           MINIO_SECURE: ${{ secrets.MINIO_SECURE }}
@@ -238,10 +281,12 @@ jobs:
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
           
           # Conectar à rede do PostgreSQL se necessário
-          PG_NETWORK="${{ steps.pg_network.outputs.network }}"
-          if [ -n "$PG_NETWORK" ]; then
+          PG_NETWORK="${{ steps.fix_db_url.outputs.network }}"
+          if [ -n "$PG_NETWORK" ] && [ "$PG_NETWORK" != "nginx_proxy" ]; then
             echo "🔗 Conectando container à rede PostgreSQL: ${PG_NETWORK}"
             docker network connect ${PG_NETWORK} api-sgpi || echo "⚠️  Não foi possível conectar à rede ${PG_NETWORK}"
+          else
+            echo "ℹ️  PostgreSQL na mesma rede ou rede não encontrada"
           fi
       
       - name: Wait for container to start
