@@ -130,9 +130,15 @@ try:
                         version_num VARCHAR(32) NOT NULL PRIMARY KEY
                     )
                 """))
-                conn.execute(text("INSERT INTO alembic_version (version_num) VALUES ('bf4c8ea79ab8') ON CONFLICT DO NOTHING"))
+                # Descobrir head revision
+                import subprocess
+                result = subprocess.run(['alembic', 'heads'], capture_output=True, text=True)
+                head_rev = '4647eb46a804'  # fallback
+                if result.returncode == 0 and result.stdout.strip():
+                    head_rev = result.stdout.strip().split()[0]
+                conn.execute(text(f"INSERT INTO alembic_version (version_num) VALUES ('{head_rev}') ON CONFLICT DO NOTHING"))
                 conn.commit()
-                print("[entrypoint] ✅ Alembic sincronizado")
+                print(f"[entrypoint] ✅ Alembic sincronizado na versão {head_rev}")
             
             print("[entrypoint] ✅ Banco parece estar em um estado válido")
             sys.exit(0)  # Sucesso, continuar

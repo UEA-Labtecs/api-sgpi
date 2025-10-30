@@ -231,12 +231,41 @@ jobs:
             echo "network=" >> $GITHUB_OUTPUT
           fi
       
+      - name: Fix MINIO_ENDPOINT for container communication
+        id: fix_minio
+        run: |
+          # Procurar por container MinIO rodando
+          MINIO_CONTAINER=$(docker ps --format '{{.Names}}' | grep -i minio | head -1 || echo "")
+          
+          if [ -n "$MINIO_CONTAINER" ]; then
+            echo "🔍 MinIO container encontrado: ${MINIO_CONTAINER}"
+            
+            # Descobrir a rede do container MinIO
+            MINIO_NETWORK=$(docker inspect ${MINIO_CONTAINER} --format '{{range $net, $conf := .NetworkSettings.Networks}}{{println $net}}{{end}}' | grep -v "^$" | head -1 | tr -d '\n' || echo "")
+            
+            if [ -n "$MINIO_NETWORK" ]; then
+              echo "📡 MinIO está na rede: ${MINIO_NETWORK}"
+              echo "network=${MINIO_NETWORK}" >> $GITHUB_OUTPUT
+            fi
+            
+            # Usar nome do container e porta interna (9000) para comunicação Docker
+            MINIO_ENDPOINT_INTERNAL="${MINIO_CONTAINER}:9000"
+            echo "📝 MINIO_ENDPOINT ajustado para container: ${MINIO_ENDPOINT_INTERNAL}"
+            echo "endpoint=${MINIO_ENDPOINT_INTERNAL}" >> $GITHUB_OUTPUT
+            echo "secure=false" >> $GITHUB_OUTPUT
+          else
+            echo "ℹ️  Nenhum container MinIO encontrado, usando secrets originais"
+            echo "endpoint=${{ secrets.MINIO_ENDPOINT }}" >> $GITHUB_OUTPUT
+            echo "secure=${{ secrets.MINIO_SECURE }}" >> $GITHUB_OUTPUT
+            echo "network=" >> $GITHUB_OUTPUT
+          fi
+      
       - name: Start new container
         env:
           DATABASE_URL: ${{ steps.fix_db_url.outputs.url }}
           SECRET_KEY: ${{ secrets.SGPI_SECRET_KEY }}
-          MINIO_ENDPOINT: ${{ secrets.MINIO_ENDPOINT }}
-          MINIO_SECURE: ${{ secrets.MINIO_SECURE }}
+          MINIO_ENDPOINT: ${{ steps.fix_minio.outputs.endpoint }}
+          MINIO_SECURE: ${{ steps.fix_minio.outputs.secure }}
           MINIO_ACCESS_KEY: ${{ secrets.MINIO_ACCESS_KEY }}
           MINIO_SECRET_KEY: ${{ secrets.MINIO_SECRET_KEY }}
           MINIO_BUCKET: ${{ secrets.MINIO_BUCKET }}
@@ -287,6 +316,15 @@ jobs:
             docker network connect ${PG_NETWORK} api-sgpi || echo "⚠️  Não foi possível conectar à rede ${PG_NETWORK}"
           else
             echo "ℹ️  PostgreSQL na mesma rede ou rede não encontrada"
+          fi
+          
+          # Conectar à rede do MinIO se necessário
+          MINIO_NETWORK="${{ steps.fix_minio.outputs.network }}"
+          if [ -n "$MINIO_NETWORK" ] && [ "$MINIO_NETWORK" != "nginx_proxy" ]; then
+            echo "🔗 Conectando container à rede MinIO: ${MINIO_NETWORK}"
+            docker network connect ${MINIO_NETWORK} api-sgpi || echo "⚠️  Não foi possível conectar à rede ${MINIO_NETWORK}"
+          else
+            echo "ℹ️  MinIO na mesma rede ou rede não encontrada"
           fi
       
       - name: Wait for container to start
