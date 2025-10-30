@@ -10,7 +10,12 @@ def verify_password(plain_password, hashed_password):
     return pwd_context.verify(plain_password, hashed_password)
 
 def get_password_hash(password):
-    return pwd_context.hash(password)
+    # bcrypt suporta até 72 bytes; garantir limite para evitar ValueError
+    if password is None:
+        raise ValueError("password is required")
+    # Limitar a 72 caracteres como salvaguarda (pydantic já valida)
+    limited = password[:72]
+    return pwd_context.hash(limited)
 
 def create_access_token(data: dict, expires_delta: timedelta = None):
     to_encode = data.copy()
