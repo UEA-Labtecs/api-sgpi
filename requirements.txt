@@ -3,7 +3,7 @@ uvicorn[standard]
 sqlalchemy
 psycopg2-binary
 python-dotenv
-passlib[bcrypt]
+bcrypt>=4.0.0
 python-jose
 playwright
 python-multipart

@@ -9,6 +9,7 @@ from typing import Sequence, Union
 
 from alembic import op
 import sqlalchemy as sa
+from sqlalchemy import inspect
 
 
 # revision identifiers, used by Alembic.
@@ -18,12 +19,22 @@ branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
 
+# helpers
+def _has_column(table_name, column_name):
+    bind = op.get_bind()
+    insp = inspect(bind)
+    cols = [c['name'] for c in insp.get_columns(table_name)]
+    return column_name in cols
+
 
 def upgrade():
     # users
-    op.add_column('users', sa.Column('tenant_id', sa.String(), nullable=True))
-    op.create_index('ix_users_tenant_id', 'users', ['tenant_id'])
-    op.add_column('users', sa.Column('role', sa.String(), server_default='user', nullable=False))
+    if not _has_column('users', 'tenant_id'):
+        op.add_column('users', sa.Column('tenant_id', sa.String(), nullable=True))
+        op.create_index('ix_users_tenant_id', 'users', ['tenant_id'])
+    
+    if not _has_column('users', 'role'):
+        op.add_column('users', sa.Column('role', sa.String(), server_default='user', nullable=False))
 
     # user_patents (se ainda não tiver)
     if not _has_column('user_patents', 'owner_id'):
@@ -59,13 +70,3 @@ def downgrade():
     op.drop_index('ix_users_tenant_id', table_name='users')
     op.drop_column('users', 'tenant_id')
     op.drop_column('users', 'role')
-
-# helpers
-from sqlalchemy import inspect
-from alembic.runtime.migration import MigrationContext
-
-def _has_column(table_name, column_name):
-    bind = op.get_bind()
-    insp = inspect(bind)
-    cols = [c['name'] for c in insp.get_columns(table_name)]
-    return column_name in cols

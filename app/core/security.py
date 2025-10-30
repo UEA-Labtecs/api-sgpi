@@ -1,21 +1,31 @@
 from datetime import datetime, timedelta
 from fastapi import HTTPException
 from jose import JWTError, jwt
-from passlib.context import CryptContext
+import bcrypt
 from app.core.config import SECRET_KEY, ALGORITHM
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-
 def verify_password(plain_password, hashed_password):
-    return pwd_context.verify(plain_password, hashed_password)
+    """Verifica se a senha em texto plano corresponde ao hash."""
+    return bcrypt.checkpw(
+        plain_password.encode('utf-8'),
+        hashed_password.encode('utf-8')
+    )
 
 def get_password_hash(password):
-    # bcrypt suporta até 72 bytes; garantir limite para evitar ValueError
+    """Gera hash da senha usando bcrypt."""
     if password is None:
         raise ValueError("password is required")
-    # Limitar a 72 caracteres como salvaguarda (pydantic já valida)
-    limited = password[:72]
-    return pwd_context.hash(limited)
+    
+    # bcrypt suporta até 72 bytes
+    password_bytes = password.encode('utf-8')
+    if len(password_bytes) > 72:
+        # Truncar para 72 bytes se necessário
+        password_bytes = password_bytes[:72]
+    
+    # Gerar hash com salt automático
+    salt = bcrypt.gensalt()
+    hashed = bcrypt.hashpw(password_bytes, salt)
+    return hashed.decode('utf-8')
 
 def create_access_token(data: dict, expires_delta: timedelta = None):
     to_encode = data.copy()
