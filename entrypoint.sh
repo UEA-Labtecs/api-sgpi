@@ -107,10 +107,17 @@ try:
                 version = result.fetchone()
                 
                 if not version:
-                    print("[entrypoint] Sincronizando versão do Alembic...")
-                    conn.execute(text("INSERT INTO alembic_version (version_num) VALUES ('bf4c8ea79ab8') ON CONFLICT DO NOTHING"))
+                    print("[entrypoint] Sincronizando versão do Alembic para head...")
+                    # Descobrir head revision
+                    import subprocess
+                    result = subprocess.run(['alembic', 'heads'], capture_output=True, text=True)
+                    head_rev = '4647eb46a804'  # fallback
+                    if result.returncode == 0:
+                        head_rev = result.stdout.strip().split()[0]
+                    conn.execute(text(f"DELETE FROM alembic_version"))
+                    conn.execute(text(f"INSERT INTO alembic_version (version_num) VALUES ('{head_rev}')"))
                     conn.commit()
-                    print("[entrypoint] ✅ Estado sincronizado, tentando aplicar migrations restantes...")
+                    print(f"[entrypoint] ✅ Estado sincronizado na versão {head_rev}")
             except Exception:
                 # Criar tabela se não existir
                 conn.execute(text("""
