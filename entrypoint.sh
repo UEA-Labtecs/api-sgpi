@@ -51,22 +51,33 @@ try:
                 conn.commit()
                 print("[entrypoint] ✅ Tabela alembic_version criada")
             
-            # Verificar versão atual
+            # Verificar versão atual e sincronizar com head se necessário
             result = conn.execute(text("SELECT version_num FROM alembic_version LIMIT 1"))
             current_version = result.fetchone()
             
+            # Descobrir head revision
+            import subprocess
+            result = subprocess.run(['alembic', 'heads'], capture_output=True, text=True)
+            head_rev = '4647eb46a804'  # fallback
+            if result.returncode == 0 and result.stdout.strip():
+                head_rev = result.stdout.strip().split()[0]
+            
             if not current_version:
-                print("[entrypoint] Descobrindo head revision e marcando como aplicada...")
-                import subprocess
-                result = subprocess.run(['alembic', 'heads'], capture_output=True, text=True)
-                head_rev = '4647eb46a804'  # fallback
-                if result.returncode == 0 and result.stdout.strip():
-                    head_rev = result.stdout.strip().split()[0]
+                print(f"[entrypoint] Nenhuma versão registrada, marcando head {head_rev} como aplicada...")
                 conn.execute(text(f"INSERT INTO alembic_version (version_num) VALUES ('{head_rev}') ON CONFLICT DO NOTHING"))
                 conn.commit()
                 print(f"[entrypoint] ✅ Head revision {head_rev} marcada como aplicada")
             else:
-                print(f"[entrypoint] ✅ Alembic já na versão: {current_version[0]}")
+                current_rev = current_version[0]
+                if current_rev != head_rev:
+                    print(f"[entrypoint] ⚠️  Versão registrada ({current_rev}) difere da head ({head_rev})")
+                    print(f"[entrypoint] 🔄 Atualizando para head {head_rev} (tabelas já existem)...")
+                    conn.execute(text(f"DELETE FROM alembic_version"))
+                    conn.execute(text(f"INSERT INTO alembic_version (version_num) VALUES ('{head_rev}')"))
+                    conn.commit()
+                    print(f"[entrypoint] ✅ Versão sincronizada para {head_rev}")
+                else:
+                    print(f"[entrypoint] ✅ Alembic já na versão head: {current_rev}")
         else:
             print("[entrypoint] Banco vazio, migrations serão aplicadas normalmente")
     
@@ -106,23 +117,32 @@ try:
         if tables_exist:
             print("[entrypoint] ✅ Tabelas existem, verificando versão do Alembic...")
             
-            # Garantir que alembic_version está configurada
+            # Garantir que alembic_version está configurada e sincronizada com head
             try:
                 result = conn.execute(text("SELECT version_num FROM alembic_version LIMIT 1"))
                 version = result.fetchone()
                 
+                # Descobrir head revision
+                import subprocess
+                result = subprocess.run(['alembic', 'heads'], capture_output=True, text=True)
+                head_rev = '4647eb46a804'  # fallback
+                if result.returncode == 0 and result.stdout.strip():
+                    head_rev = result.stdout.strip().split()[0]
+                
                 if not version:
-                    print("[entrypoint] Sincronizando versão do Alembic para head...")
-                    # Descobrir head revision
-                    import subprocess
-                    result = subprocess.run(['alembic', 'heads'], capture_output=True, text=True)
-                    head_rev = '4647eb46a804'  # fallback
-                    if result.returncode == 0:
-                        head_rev = result.stdout.strip().split()[0]
+                    print(f"[entrypoint] Sincronizando versão do Alembic para head {head_rev}...")
                     conn.execute(text(f"DELETE FROM alembic_version"))
                     conn.execute(text(f"INSERT INTO alembic_version (version_num) VALUES ('{head_rev}')"))
                     conn.commit()
                     print(f"[entrypoint] ✅ Estado sincronizado na versão {head_rev}")
+                else:
+                    current_rev = version[0]
+                    if current_rev != head_rev:
+                        print(f"[entrypoint] ⚠️  Versão registrada ({current_rev}) difere da head ({head_rev}), atualizando...")
+                        conn.execute(text(f"DELETE FROM alembic_version"))
+                        conn.execute(text(f"INSERT INTO alembic_version (version_num) VALUES ('{head_rev}')"))
+                        conn.commit()
+                        print(f"[entrypoint] ✅ Versão atualizada para {head_rev}")
             except Exception:
                 # Criar tabela se não existir
                 conn.execute(text("""
