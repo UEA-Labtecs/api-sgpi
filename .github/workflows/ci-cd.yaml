@@ -158,7 +158,7 @@ jobs:
       
       - name: Start new container
         env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL_SGPI }}
           SECRET_KEY: ${{ secrets.SGPI_SECRET_KEY }}
           MINIO_ENDPOINT: ${{ secrets.MINIO_ENDPOINT }}
           MINIO_SECURE: ${{ secrets.MINIO_SECURE }}
